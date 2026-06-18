@@ -22,20 +22,21 @@ no prior exposure to our code base can understand the system end-to-end.
 
 ## Table of Contents
 
-1. [Content](#content)
-2. [Team Photos](#team-photos)
-3. [Vehicle Photos](#vehicle-photos)
-4. [Driving Demonstration Video](#driving-demonstration-video)
-5. [Vehicle Hardware Summary](#vehicle-hardware-summary)
-6. [Wiring and Connections](#wiring-and-connections)
-7. [Software Architecture](#software-architecture)
-8. [Module-to-Hardware Mapping](#module-to-hardware-mapping)
-9. [Complete Block Code](#complete-block-code)
-10. [Build, Compile, and Upload Process](#build-compile-and-upload-process)
-11. [Repository Structure](#repository-structure)
-12. [Known Limitations and Future Work](#known-limitations-and-future-work)
+1. [Vehicle Overview](#vehicle-overview)
+2. [Electromechanical Architecture](#electromechanical-architecture)
+3. [Wiring and Connections](#wiring-and-connections)
+4. [Software Architecture](#software-architecture)
+5. [Module-to-Hardware Mapping](#module-to-hardware-mapping)
+6. [Sensing and Perception Strategy](#sensing-and-perception-strategy)
+7. [Control and Motion Strategy](#control-and-motion-strategy)
+8. [Build, Compile, and Upload Process](#build-compile-and-upload-process)
+9. [Running the Vehicle at Competition](#running-the-vehicle-at-competition)
+10. [Repository Structure](#repository-structure)
+11. [Known Limitations and Future Work](#known-limitations-and-future-work)
 
-## Content
+---
+
+## Vehicle Overview
 
 * `t-photos` contains 2 photos of the team (an official one and one funny photo with all team members)
 * `v-photos` contains 6 photos of the vehicle (from every side, from top and bottom)
@@ -45,17 +46,13 @@ no prior exposure to our code base can understand the system end-to-end.
 * `models` is for the files for models used by 3D printers, laser cutting machines and CNC machines to produce the vehicle elements. If there is nothing to add to this location, the directory can be removed.
 * `other` is for other files which can be used to understand how to prepare the vehicle for the competition. It may include documentation how to connect to a SBC/SBM and upload files there, datasets, hardware specifications, communication protocols descriptions etc. If there is nothing to add to this location, the directory can be removed.
 
----
-
-## Team Photos
+### Team Photos
 
 | Official Photo | Funny Photo |
 |:---:|:---:|
 | ![Team Official](t-photos/team_official.jpg) | ![Team Funny](t-photos/team_funny.jpg) |
 
----
-
-## Vehicle Photos
+### Vehicle Photos
 
 | Front | Back |
 |:---:|:---:|
@@ -69,15 +66,13 @@ no prior exposure to our code base can understand the system end-to-end.
 |:---:|:---:|
 | ![Top](v-photos/vehicle_top.jpg) | ![Bottom](v-photos/vehicle_bottom.jpg) |
 
----
-
-## Driving Demonstration Video
+### Driving Demonstration Video
 
 ▶️ **[Click here to watch the driving demonstration](https://drive.google.com/file/d/1SYZ8zzjICA0w-TKJidTM_OpNrfjVLLTG/view?usp=sharing)**
 
 ---
 
-## Vehicle Hardware Summary
+## Electromechanical Architecture
 
 The vehicle carries a central electronics stack consisting of the main AISTEAM
 controller board, a dedicated motor expansion module, and a wiring harness that
@@ -180,7 +175,35 @@ component on the vehicle, which is the core requirement of this documentation:
 
 ---
 
-## Complete Block Code
+## Sensing and Perception Strategy
+
+The vehicle perceives its environment through two independent sensing channels,
+each feeding a separate decision stage in the control program:
+
+- **Lane perception** — The Integrated Grayscale Sensing Module reports three
+  independent reflectivity readings (Left, Middle, Right), each compared against
+  calibrated Black/White thresholds. The pattern across the three channels encodes
+  the vehicle's lateral position relative to the track's center line: a centered
+  reading (`Left=White, Middle=Black, Right=White`) indicates correct alignment,
+  while a Black reading on either outer channel indicates drift toward that side.
+
+- **Obstacle perception** — The Infrared Barrier Avoidance Module returns a single
+  binary signal: Obstacle Detected or No Obstacle. It does not return distance,
+  angle, or color information — only presence.
+
+- **Sensor priority** — Because the IR module can only signal presence and not
+  position, the program always checks it before evaluating the grayscale channels
+  on every loop iteration. This guarantees the vehicle reacts to a wall or pillar
+  even if it is currently mid-correction on the line.
+
+- **No camera or color sensor** — Perception is intentionally limited to these two
+  modules. The vehicle cannot distinguish pillar color, read signage, or detect
+  obstacles outside the IR module's forward-facing cone. The implications of this
+  are discussed further in Known Limitations and Future Work.
+
+---
+
+## Control and Motion Strategy
 
 The following is the full autonomous control program as it appears in the AISTEAM
 block programming environment, transcribed into structured pseudocode for
@@ -289,7 +312,11 @@ a running program on the physical vehicle.
    During competition the vehicle must be fully autonomous and battery-powered with
    no USB connection present.
 
-8. **Verify motor and sensor operation.**
+---
+
+## Running the Vehicle at Competition
+
+1. **Verify motor and sensor operation.**
    With the vehicle powered on from the battery but placed on a test surface,
    confirm that each motor responds correctly, that the grayscale module reports
    distinct Black and White readings on the track surface, and that the infrared
@@ -297,7 +324,7 @@ a running program on the physical vehicle.
    that no wiring change has inadvertently shifted a connection since the last
    upload.
 
-9. **Run on the track.**
+2. **Run on the track.**
    Place the vehicle on the track with the grayscale sensor aligned over the center
    black line and power on. The `forever` loop starts immediately. Observe straight
    driving when centered, left/right corrections when drifting, obstacle avoidance
